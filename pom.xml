@@ -11,9 +11,9 @@
     <artifactId>pipeline-as-yaml</artifactId>
     <version>0.14-rc</version>
     <packaging>hpi</packaging>
-    <name>Pipeline As YAML (Incubated)</name>
+    <name>Pipeline As YAML</name>
     <description>Enables defining Jenkins Pipelines in YAML Format</description>
-    <url>https://github.com/jenkinsci/pipeline-as-yaml-plugin</url>
+    <url>https://github.com/keqingyuan/pipeline-as-yaml-plugin</url>
     <licenses>
         <license>
             <name>MIT License</name>
@@ -21,16 +21,16 @@
         </license>
     </licenses>
     <scm>
-        <connection>scm:git:ssh://github.com/jenkinsci/pipeline-as-yaml-plugin.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com/jenkinsci/pipeline-as-yaml-plugin.git</developerConnection>
-        <url>https://github.com/jenkinsci/pipeline-as-yaml-plugin</url>
+        <connection>scm:git:ssh://github.com/keqingyuan/pipeline-as-yaml-plugin.gitt</connection>
+        <developerConnection>scm:git:ssh://git@github.com/keqingyuan/pipeline-as-yaml-plugin.git</developerConnection>
+        <url>https://github.com/keqingyuan/pipeline-as-yaml-plugin</url>
         <tag>pipeline-as-yaml-0.14-rc</tag>
     </scm>
     <developers>
         <developer>
-            <id>aytuncbeken</id>
-            <name>Aytunc BEKEN</name>
-            <email>aytuncbeken.ab@gmail.com</email>
+            <id>keqingyuan</id>
+            <name>Ke Bei</name>
+            <email>1209547238@qq.com</email>
         </developer>
     </developers>
     <properties>
