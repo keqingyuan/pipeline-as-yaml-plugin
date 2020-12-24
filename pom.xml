@@ -35,7 +35,7 @@
     </developers>
     <properties>
         <java.level>8</java.level>
-        <jenkins.version>2.176.4</jenkins.version>
+        <jenkins.version>2.190.3</jenkins.version>
         <slf4j.version>1.7.26</slf4j.version>
         <hpi.compatibleSinceVersion>0.13-rc</hpi.compatibleSinceVersion>
     </properties>
@@ -44,7 +44,7 @@
         <dependencies>
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
-                <artifactId>bom-2.176.x</artifactId>
+                <artifactId>bom-2.190.x</artifactId>
                 <version>16</version>
                 <scope>import</scope>
                 <type>pom</type>
