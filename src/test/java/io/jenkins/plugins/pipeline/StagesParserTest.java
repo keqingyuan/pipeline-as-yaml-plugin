@@ -137,6 +137,7 @@ public class StagesParserTest {
         Optional<ParametersModel> parametersModel = inputModel.get().getParametersModel();
         Assert.assertTrue(parametersModel.isPresent());
         Assert.assertEquals(1, parametersModel.get().getParametersList().size());
+        System.out.println(pipelineModel.get().toPrettyGroovy());
     }
 
 }
