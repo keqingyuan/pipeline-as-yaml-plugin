@@ -1,6 +1,11 @@
 package io.jenkins.plugins.pipeline.endpoints;
 
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import hudson.Extension;
 import hudson.model.RootAction;
 import hudson.security.csrf.CrumbExclusion;
@@ -14,6 +19,7 @@ import org.apache.commons.lang.StringUtils;
 import org.codehaus.groovy.control.MultipleCompilationErrorsException;
 import org.codehaus.groovy.control.messages.SyntaxErrorMessage;
 import org.jenkinsci.plugins.pipeline.modeldefinition.parser.Converter;
+import org.jenkinsci.plugins.pipeline.modeldefinition.validator.ErrorCollector;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.interceptor.RequirePOST;
@@ -32,11 +38,12 @@ import java.util.Optional;
  */
 @Extension
 public class ModelConverterAction implements RootAction {
-    public static final String PIPELINE_CONVERTER_URL = "kebei-pipeline-model-converter";
+
+    public static final String PSET_PIPELINE_CONVERTER_URL = "pset-pipeline-model-converter";
 
     @Override
     public String getUrlName() {
-        return PIPELINE_CONVERTER_URL;
+        return PSET_PIPELINE_CONVERTER_URL;
     }
 
     @Override
@@ -54,10 +61,10 @@ public class ModelConverterAction implements RootAction {
         Jenkins.get().checkPermission(Jenkins.READ);
         JSONObject result = new JSONObject();
 
-        String yamlJenkinsFileContent = req.getParameter("yaml");
+        String yamlContent = req.getParameter("yaml");
 
-        if (!StringUtils.isEmpty(yamlJenkinsFileContent)){
-            PipelineParser pipelineParser = new PipelineParser(yamlJenkinsFileContent);
+        if (!StringUtils.isEmpty(yamlContent)){
+            PipelineParser pipelineParser = new PipelineParser(yamlContent);
             Optional<PipelineModel> pipelineModel = pipelineParser.parse();
             if (pipelineModel.isPresent()){
                 try {
@@ -68,14 +75,174 @@ public class ModelConverterAction implements RootAction {
                     JSONObject jfErrors = new JSONObject();
                     reportFailure(jfErrors, e);
                     JSONArray errors = new JSONArray();
-                    errors.add(new JSONObject().accumulate("psetfileErrors", jfErrors));
+                    errors.add(new JSONObject().accumulate("error", jfErrors));
                     reportFailure(result, errors);
                 }
             }
 
+        } else {
+            reportFailure(result, "No content found for 'yaml' parameter");
         }
         return HttpResponses.okJSON(result);
     }
+
+    @RequirePOST
+    public HttpResponse doValidateJson(StaplerRequest req) {
+        Jenkins.get().checkPermission(Jenkins.READ);
+
+        JSONObject result = new JSONObject();
+
+        String jsonAsString = req.getParameter("json");
+        if (!StringUtils.isEmpty(jsonAsString)) {
+            try {
+                String yaml = convertJsonToYaml(jsonAsString);
+                PipelineParser pipelineParser = new PipelineParser(yaml);
+                Optional<PipelineModel> pipelineModel = pipelineParser.parse();
+                if (pipelineModel.isPresent()){
+                    try {
+                        String jenkinsFileContent = pipelineModel.get().toPrettyGroovy();
+                        Converter.scriptToPipelineDef(jenkinsFileContent);
+                        result.accumulate("result", "success");
+                    } catch (Exception e) {
+                        JSONObject jfErrors = new JSONObject();
+                        reportFailure(jfErrors, e);
+                        JSONArray errors = new JSONArray();
+                        errors.add(new JSONObject().accumulate("error", jfErrors));
+                        reportFailure(result, errors);
+                    }
+                }
+            } catch (Exception je) {
+                reportFailure(result, je);
+            }
+        } else {
+            reportFailure(result, "No content found for 'json' parameter");
+        }
+
+        return HttpResponses.okJSON(result);
+    }
+
+    @RequirePOST
+    public HttpResponse doYamlToJson(StaplerRequest req) {
+        Jenkins.get().checkPermission(Jenkins.READ);
+        JSONObject result = new JSONObject();
+
+        String yamlJenkinsFileContent = req.getParameter("yaml");
+
+        if (!StringUtils.isEmpty(yamlJenkinsFileContent)){
+            try {
+                String json = convertYamlToJson(yamlJenkinsFileContent);
+                result.accumulate("result", "success");
+                result.accumulate("json",json);
+            } catch (Exception e) {
+                JSONObject jfErrors = new JSONObject();
+                reportFailure(jfErrors, e);
+                JSONArray errors = new JSONArray();
+                errors.add(new JSONObject().accumulate("error", jfErrors));
+                reportFailure(result, errors);
+            }
+        } else {
+            reportFailure(result, "No content found for 'yaml' parameter");
+        }
+        return HttpResponses.okJSON(result);
+    }
+
+    @RequirePOST
+    public  HttpResponse doYamlToGroovy(StaplerRequest req) {
+        Jenkins.get().checkPermission(Jenkins.READ);
+        JSONObject result = new JSONObject();
+
+        String yamlJenkinsFileContent = req.getParameter("yaml");
+
+        if (!StringUtils.isEmpty(yamlJenkinsFileContent)){
+            PipelineParser pipelineParser = new PipelineParser(yamlJenkinsFileContent);
+            Optional<PipelineModel> pipelineModel = pipelineParser.parse();
+            if (pipelineModel.isPresent()){
+                try {
+                    String jenkinsFileContent = pipelineModel.get().toPrettyGroovy();
+                    Converter.scriptToPipelineDef(jenkinsFileContent);
+                    result.accumulate("result", "success");
+                    result.accumulate("groovy",jenkinsFileContent);
+                } catch (Exception e) {
+                    JSONObject jfErrors = new JSONObject();
+                    reportFailure(jfErrors, e);
+                    JSONArray errors = new JSONArray();
+                    errors.add(new JSONObject().accumulate("error", jfErrors));
+                    reportFailure(result, errors);
+                }
+            }
+
+        } else {
+            reportFailure(result, "No content found for 'yaml' parameter");
+        }
+        return HttpResponses.okJSON(result);
+    }
+
+    @RequirePOST
+    public HttpResponse doJsonToYaml(StaplerRequest req) {
+        Jenkins.get().checkPermission(Jenkins.READ);
+        JSONObject result = new JSONObject();
+
+        String json = req.getParameter("json");
+
+        if (!StringUtils.isEmpty(json)){
+                try {
+                    String yamlContent = convertJsonToYaml(json);
+                    result.accumulate("result", "success");
+                    result.accumulate("yaml",yamlContent);
+                } catch (Exception e) {
+                    JSONObject jfErrors = new JSONObject();
+                    reportFailure(jfErrors, e);
+                    JSONArray errors = new JSONArray();
+                    errors.add(new JSONObject().accumulate("error", jfErrors));
+                    reportFailure(result, errors);
+                }
+        } else {
+            reportFailure(result, "No content found for 'json' parameter");
+        }
+        return HttpResponses.okJSON(result);
+    }
+
+    @RequirePOST
+    public HttpResponse doJsonToGroovy(StaplerRequest req) {
+        Jenkins.get().checkPermission(Jenkins.READ);
+        JSONObject result = new JSONObject();
+
+        String jsonAsString = req.getParameter("json");
+        String yamlJenkinsFileContent = "";
+        try {
+            yamlJenkinsFileContent = convertJsonToYaml(jsonAsString);
+        } catch (JsonProcessingException e) {
+            JSONObject jfErrors = new JSONObject();
+            reportFailure(jfErrors, e);
+            JSONArray errors = new JSONArray();
+            errors.add(new JSONObject().accumulate("error", jfErrors));
+            reportFailure(result, errors);
+        }
+
+        if (!StringUtils.isEmpty(yamlJenkinsFileContent)){
+            PipelineParser pipelineParser = new PipelineParser(yamlJenkinsFileContent);
+            Optional<PipelineModel> pipelineModel = pipelineParser.parse();
+            if (pipelineModel.isPresent()){
+                try {
+                    String jenkinsFileContent = pipelineModel.get().toPrettyGroovy();
+                    Converter.scriptToPipelineDef(jenkinsFileContent);
+                    result.accumulate("result", "success");
+                    result.accumulate("groovy",jenkinsFileContent);
+                } catch (Exception e) {
+                    JSONObject jfErrors = new JSONObject();
+                    reportFailure(jfErrors, e);
+                    JSONArray errors = new JSONArray();
+                    errors.add(new JSONObject().accumulate("error", jfErrors));
+                    reportFailure(result, errors);
+                }
+            }
+
+        } else {
+            reportFailure(result, "No content found for 'json' parameter");
+        }
+        return HttpResponses.okJSON(result);
+    }
+
 
     /**
      * Report result to be a failure message due to the given exception.
@@ -126,6 +293,42 @@ public class ModelConverterAction implements RootAction {
         result.accumulate("errors", errors);
     }
 
+    /**
+     * convert json to yaml
+     * @param json
+     * @return yaml
+     * @throws JsonProcessingException
+     */
+    private String convertJsonToYaml(String json) throws JsonProcessingException {
+        // parse JSON
+        JsonNode jsonNodeTree = new ObjectMapper().readTree(json);
+        // save it as YAML
+        return new YAMLMapper().writeValueAsString(jsonNodeTree);
+    }
+
+    /**
+     * convert yaml to json
+     * @param yaml
+     * @return json
+     * @throws JsonProcessingException
+     */
+    private static String convertYamlToJson(String yaml) throws JsonProcessingException {
+
+        ObjectMapper yamlReader = new ObjectMapper(new YAMLFactory());
+        Object obj = yamlReader.readValue(yaml, Object.class);
+        ObjectMapper jsonWriter = new ObjectMapper();
+        return jsonWriter.writerWithDefaultPrettyPrinter().writeValueAsString(obj);
+
+    }
+
+    private boolean collectErrors(JSONObject result, ErrorCollector errorCollector) {
+        if (errorCollector.getErrorCount() > 0) {
+            JSONArray errors = errorCollector.asJson();
+            reportFailure(result, errors);
+            return true;
+        }
+        return false;
+    }
     @Extension
     public static class ModelConverterActionCrumbExclusion extends CrumbExclusion {
         @Override
@@ -133,7 +336,7 @@ public class ModelConverterAction implements RootAction {
                 throws IOException, ServletException {
             String pathInfo = req.getPathInfo();
 
-            if (pathInfo != null && pathInfo.startsWith("/" + PIPELINE_CONVERTER_URL + "/")) {
+            if (pathInfo != null && pathInfo.startsWith("/" + PSET_PIPELINE_CONVERTER_URL + "/")) {
                 chain.doFilter(req, resp);
                 return true;
             }

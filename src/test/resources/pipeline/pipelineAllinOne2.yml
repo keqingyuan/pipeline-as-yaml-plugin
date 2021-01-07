@@ -3,110 +3,101 @@ pipeline:
     node:
       label: "master"
   tools:
-    jdk: default
+    jdk: "default"
   triggers:
-    - cron('H */4 * * 1-5')
-    - pollSCM('H */4 * * 1-5')
+    - "cron('H */4 * * 1-5')"
+    - "pollSCM('H */4 * * 1-5')"
   environment:
-    ENV1: VAL1
-    ENV2: VAL2
-    CRED: credentials('test-credentials')
+    ENV1: "VAL1"
+    ENV2: "VAL2"
+    CRED: "credentials('test-credentials')"
   parameters:
     - "string(name: 'STRING_PARAM', defaultValue: 'DefaultValue', description: 'Description')"
     - "text(name: 'TEXT_PARAM', defaultValue: 'DefaultValue', description: 'Description')"
   options:
     - "timeout(time: 1, unit: 'HOURS')"
-    - skipDefaultCheckout()
+    - "skipDefaultCheckout()"
   stages:
-    - stage: Basic Stage
+    - stage: "Basic Stage"
       steps:
-        - echo "Basic Stage"
-    - stage: Basic Stage with Multi Steps
+        - "echo \"Basic Stage\""
+    - stage: "Basic Stage with Multi Steps"
       steps:
-        - echo "Basic Stage with Multi Steps"
-        - echo "${CRED}"
+        - "echo \"Basic Stage with Multi Steps\""
+        - "echo \"${CRED}\""
     - stage: "Basic Stage - Script"
       steps:
         script:
-          - echo "Basic Stage - Script"
+          - "echo \"Basic Stage - Script\""
     - stage: "Complex Stage"
       agent:
-        any:
+        any: null
       environment:
-        STAGE_ENV: STAGE_VAL
+        STAGE_ENV: "STAGE_VAL"
       post:
         always:
-          - echo "Stage - Post - Always"
+          - "echo \"Stage - Post - Always\""
       options:
-        - skipDefaultCheckout()
+        - "skipDefaultCheckout()"
       tools:
-        jdk: default
+        jdk: "default"
       steps:
-        - echo "Complex Stage"
+        - "echo \"Complex Stage\""
     - stage: "Stage MultiLine String"
-      steps: |
-        echo "1"
-        echo "2"
-        echo "3"
+      steps: "echo \"1\"\necho \"2\"\necho \"3\"\n"
     - stage: "Stage MultiLine Script"
       steps:
-        script: |
-          echo "1"
-          echo "2"
-          echo "3"
+        script: "echo \"1\"\necho \"2\"\necho \"3\"\n"
     - stage: "WithEnv Stage"
       steps:
         script:
           - withEnv: "['MYKEY1=MYVAL1']"
             script:
-              - echo env.MYKEY1
+              - "echo env.MYKEY1"
     - stage: "WithEnv Intertwined"
       steps:
         script:
           - withEnv: "['KEY1=VAL1']"
             script:
-              - echo env.KEY1
+              - "echo env.KEY1"
               - withEnv: "['KEY2=VAL2']"
                 script:
-                  - echo env.KEY2
+                  - "echo env.KEY2"
     - stage: "Dir Stage"
       stages:
         - stage: "Create Dir"
           steps:
-            script: |
-              if ( isUnix() ) {
-                sh "mkdir test"
-              }
+            script: "if ( isUnix() ) {\n  sh \"mkdir test\"\n}\n"
         - stage: "Change Dir"
           steps:
             script:
               - dir: "'test'"
                 script:
-                  - echo "In directory"
+                  - "echo \"In directory\""
     - stage: "Stage - When"
       when:
-        - branch 'production'
+        - "branch 'production'"
         - "environment name: 'DEPLOY_TO', value: 'production'"
       steps:
-        - echo "Stage When"
+        - "echo \"Stage When\""
     - stage: "Stage - When- BeforeAgent"
       when:
         - "branch 'production'"
       beforeAgent: true
       steps:
-        - echo "Stage When"
+        - "echo \"Stage When\""
     - stage: "Stage - When- Conditional"
       when:
         anyOf:
           allOf:
             - "branch 'production'"
       steps:
-        - echo "Stage When - Conditional"
+        - "echo \"Stage When - Conditional\""
     - stage: "Sequential Stage"
       stages:
         - stage: "Sequential Stage1"
           steps:
-            - echo "Sequential Stage1"
+            - "echo \"Sequential Stage1\""
         - stage: "Sequential Stage2"
           steps:
             - "echo 'test'"
@@ -115,14 +106,14 @@ pipeline:
       parallel:
         - stage: "Parallel Stage1"
           steps:
-            - echo "Parallel Stage1"
+            - "echo \"Parallel Stage1\""
         - stage: "Parallel Stage2"
           steps:
-            - echo "Parallel Stage2"
+            - "echo \"Parallel Stage2\""
   post:
     always:
       script:
-        - echo "Post Always - Script"
+        - "echo \"Post Always - Script\""
     changed:
-      - echo "Post Changed - Step"
-      - sh 'echo "Bye"'
+      - "echo \"Post Changed - Step\""
+      - "sh 'echo \"Bye\"'"
